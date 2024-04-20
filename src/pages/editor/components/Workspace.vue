@@ -105,7 +105,6 @@ const blockMouseMove = (event: MouseEvent, item: Object) => {
 
 const focusBoxClick = (e: MouseEvent) => {
   // console.log(e);
-  // e.stopPropagation();
 };
 
 const mouseZoom = (event: MouseEvent, type: string) => {
