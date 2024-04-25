@@ -108,8 +108,31 @@ const focusBoxClick = (e: MouseEvent) => {
 };
 
 const mouseZoom = (event: MouseEvent, type: string) => {
-  // console.log(event);
+  const preMoveDis = {
+    left: 0,
+    top: 0,
+  };
+  const x1 = event.clientX;
+  const y1 = event.clientY;
+  document.onmousemove = (e: MouseEvent) => {
+    const x2 = e.clientX;
+    const y2 = e.clientY;
+    const computedLeft = x2 - x1 - preMoveDis.left;
+    const computedTop = y2 - y1 - preMoveDis.top;
+    preMoveDis.left = x2 - x1;
+    preMoveDis.top = y2 - y1;
+    editorStore.changeMoveStatue(true);
+    editorStore.zoomDomNode(type, computedLeft, computedTop);
+  };
+  document.onmouseup = function () {
+    setTimeout(() => {
+      editorStore.changeMoveStatue(false);
+    });
+    document.onmousemove = document.onmouseup = null;
+  };
 };
+
+const mouseRotate = (event: MouseEvent) => {};
 
 // 监听当前键盘 ctrl 状态
 const watchKeydown = (event: KeyboardEvent) => {
@@ -254,23 +277,24 @@ onUnmounted(() => {
         >
           <b class="horiz"></b>
         </i>
-        <!-- <i
-            class="editor-rotator editor-transition"
-            @mousedown.prevent="mouseRotate($event, block)"
-            @mousedown.stop
-            :style="{ transform: `rotate(${-block.rotate}deg)` }"
-          >
-            <b style="transform: matrix(1, 0, 0, 1, 0, 0)">
+        <!-- 旋转 -->
+        <i
+          class="editor-rotator editor-transition"
+          @mousedown.prevent="mouseRotate($event)"
+          @mousedown.stop
+          :style="{ transform: `rotate(${-editorStore.focusBox.rotate}deg)` }"
+        >
+          <!-- <b style="transform: matrix(1, 0, 0, 1, 0, 0)">
             <span style="display: none">0°</span>
-          </b>
-            <svg-icon iconName="rotate" className="rotate"></svg-icon>
-            <span
-              class="rotate-value"
-              :style="{ display: isRotate ? '' : 'none' }"
-            >
-              {{ block.rotate }}°
-            </span>
-          </i> -->
+          </b> -->
+          <img src="@/assets/icon/editor/rotate.svg" class="rotate" />
+          <span
+            class="rotate-value"
+            :style="{ display: editorStore.focusBox.isRotating ? '' : 'none' }"
+          >
+            {{ editorStore.focusBox.rotate }}°
+          </span>
+        </i>
       </div>
     </template>
   </div>
@@ -297,6 +321,7 @@ onUnmounted(() => {
     border-width: 1px;
     border-style: solid;
     border-color: #6ccfff;
+    margin: -0.5px 0 0 -0.5px;
   }
 
   .box-border {
@@ -309,7 +334,8 @@ onUnmounted(() => {
     border-color: #6ccfff;
     z-index: 3;
     // transform: translate(-0.5px, -0.5px);
-    margin: -2px 0 0 -2px;
+    // margin: -1.5px 0 0 -1.5px;
+    margin: -1px 0 0 -1px;
   }
   .box-border__focus {
     display: block;
@@ -319,10 +345,12 @@ onUnmounted(() => {
 
 .focus-box {
   // transform: translate(-1px, -1px);
-  margin: -2px 0 0 -2px;
+  margin: -1px 0 0 -1px;
+  // margin: -1.5px 0 0 -1.5px;
+  // transform: translate(-1px, -1px);
   transform: matrix(1, 0, 0, 1, 0, 0);
   opacity: 1;
-  transition: opacity 100ms;
+  // transition: opacity 100ms;
   position: absolute;
   z-index: 5;
   cursor: move;
@@ -441,7 +469,7 @@ onUnmounted(() => {
     box-sizing: border-box;
     box-shadow: 0 0 2px 0 rgba(86, 90, 98, 0.8);
     background-color: rgb(255, 255, 255);
-    transition: opacity 300ms;
+    // transition: opacity 300ms;
   }
 }
 .focus-box-drag {

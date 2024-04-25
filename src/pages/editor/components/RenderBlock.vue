@@ -30,6 +30,15 @@ defineProps({
       {{ details.textInnerStyle.text }}
     </div>
   </template>
+  <template v-else-if="details.key == 'img'">
+    <div class="box">
+      <img
+        class="img"
+        :src="details.imgInnerStyle?.src"
+        :alt="details.imgInnerStyle?.alt"
+      />
+    </div>
+  </template>
 </template>
 
 <style scoped lang="scss">
@@ -38,5 +47,11 @@ defineProps({
   width: 100%;
   height: 100%;
   user-select: none;
+}
+.img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  // margin: -1px 0 0 -1px;
 }
 </style>
