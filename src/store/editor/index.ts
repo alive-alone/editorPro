@@ -102,6 +102,37 @@ export const useEditorStore = defineStore('editor', {
             src: '',
           },
         },
+        '2024425172122966970': {
+          id: '2024425172122966970',
+          key: 'text',
+          dragging: false,
+          focus: false,
+          outerStyle: {
+            left: 50,
+            width: 297,
+            height: 57.48,
+            borderRadius: 0,
+            top: 100,
+            zIndex: 1,
+            rotate: 0,
+            opacity: 1,
+            backgroundColor: '',
+          },
+          textInnerStyle: {
+            fontFamily: '',
+            fontSize: 47.7,
+            fontStyle: '',
+            fontWeight: 600,
+            color: '#000000',
+            lineHeight: 57.48,
+            text: '双击编辑标题',
+            textAlign: 'center',
+          },
+          ingInnerStyle: {
+            alt: '',
+            src: '',
+          },
+        },
         '2024422172122966354': {
           id: '2024422172122966354',
           key: 'img',
@@ -161,11 +192,11 @@ export const useEditorStore = defineStore('editor', {
     },
     // 通过 focus-box 进行缩放
     zoomDomNode(type: string, movementX: number, movementY: number) {
-      // 东 east  西 west  南 south  北 north
-      const zoomScale = movementX / this.focusBox.pos[2];
+      const preFocusBox = [...this.focusBox.pos];
       const scaleVal =
         movementX / (this.focusBox.pos[2] / this.focusBox.pos[3]);
       // [left, top, width, height]
+      // 东 east  西 west  南 south  北 north
       if (type === 'sw') {
         this.focusBox.pos[2] -= movementX;
         this.focusBox.pos[3] -= scaleVal;
@@ -193,74 +224,31 @@ export const useEditorStore = defineStore('editor', {
       } else if (type === 's') {
         this.focusBox.pos[3] += movementY;
       }
-
-      /*       const changeSize = (type: string, target: object, key = 'box') => {
+      /**
+       *
+       * @param target dom 节点
+       * @param key
+       * 传入 dom 节点根据比例修改节点
+       */
+      const changeSize = (target: object, key = 'box') => {
         const block = target.outerStyle;
-        let scaleVal = movementX / (block.width / block.height);
-        if (type === 'sw') {
-          block.width -= movementX;
-          block.height -= scaleVal;
-          block.left += movementX;
-        } else if (type === 'nw') {
-          block.width -= movementX;
-          block.height -= scaleVal;
-          block.top += scaleVal;
-          block.left += movementX;
-        } else if (type === 'ne') {
-          block.width += movementX;
-          block.height += scaleVal;
-          block.top -= scaleVal;
-        } else if (type === 'se') {
-          block.width += movementX;
-          block.height += scaleVal;
-        } else if (type === 'e') {
-          block.width += movementX;
-        } else if (type === 'w') {
-          block.width -= movementX;
-          block.left += movementX;
-        } else if (type === 'n') {
-          block.height -= movementY;
-          block.top += movementY;
-        } else if (type === 's') {
-          block.height += movementY;
-        }
-        if (target.key === 'text') {
-          const styles = target.textInnerStyle;
-          styles.lineHeight = block.height;
-          styles.fontSize = (0.8 * block.height).toFixed(1);
-        }
-      };*/
-      const changeSize = (type: string, target: object, key = 'box') => {
-        const block = target.outerStyle;
-        const left = block.width * zoomScale;
-        let scaleVal = left / (block.width / block.height);
-        if (type === 'sw') {
-          block.width -= left;
-          block.height -= scaleVal;
-          block.left += left;
-        } else if (type === 'nw') {
-          block.width -= left;
-          block.height -= scaleVal;
-          block.top += scaleVal;
-          block.left += left;
-        } else if (type === 'ne') {
-          block.width += left;
-          block.height += scaleVal;
-          block.top -= scaleVal;
-        } else if (type === 'se') {
-          block.width += left;
-          block.height += scaleVal;
-        } else if (type === 'e') {
-          block.width += left;
-        } else if (type === 'w') {
-          block.width -= left;
-          block.left += left;
-        } else if (type === 'n') {
-          block.height -= movementY;
-          block.top += movementY;
-        } else if (type === 's') {
-          block.height += movementY;
-        }
+        const prePos = { ...target.outerStyle };
+        // 以 focusBox 为基准等比算出 left top width height 的变化
+        const newLeft =
+          ((prePos.left - preFocusBox[0]) / preFocusBox[2]) *
+            this.focusBox.pos[2] +
+          this.focusBox.pos[0];
+        const newTop =
+          ((prePos.top - preFocusBox[1]) / preFocusBox[3]) *
+            this.focusBox.pos[3] +
+          this.focusBox.pos[1];
+        const newWidth = (prePos.width / preFocusBox[2]) * this.focusBox.pos[2];
+        const newHeight =
+          (prePos.height / preFocusBox[3]) * this.focusBox.pos[3];
+        block.width = newWidth;
+        block.height = newHeight;
+        block.left = newLeft;
+        block.top = newTop;
         if (target.key === 'text') {
           const styles = target.textInnerStyle;
           styles.lineHeight = block.height;
@@ -268,7 +256,44 @@ export const useEditorStore = defineStore('editor', {
         }
       };
       for (let id of this.focusList) {
-        changeSize(type, this.domNodesObj[id]);
+        changeSize(this.domNodesObj[id]);
+      }
+    },
+    //
+    mouseRotate(
+      startPoint: { x: number; y: number },
+      movingPoint: { x: number; y: number }
+    ) {
+      const boxCenter = {
+        x: this.focusBox.pos[0] + this.focusBox.pos[2] / 2,
+        y: this.focusBox.pos[1] + this.focusBox.pos[3] / 2,
+      };
+      let aSquare =
+        (startPoint.x - movingPoint.x) ** 2 +
+        (startPoint.y - movingPoint.y) ** 2;
+      if (aSquare > 0) {
+        let bSquare =
+          (boxCenter.x - movingPoint.x) ** 2 +
+          (boxCenter.y - movingPoint.y) ** 2;
+        let cSquare =
+          (boxCenter.x - startPoint.x) ** 2 + (boxCenter.y - startPoint.y) ** 2;
+        let cosA =
+          (bSquare + cSquare - aSquare) /
+          (2 * Math.sqrt(bSquare) * Math.sqrt(cSquare));
+        let arccosA = Math.round((Math.acos(cosA) * 180) / Math.PI);
+        let direct =
+          (movingPoint.x - boxCenter.x) * (startPoint.y - boxCenter.y) -
+          (movingPoint.y - boxCenter.y) * (startPoint.x - boxCenter.x);
+        let rotate = arccosA;
+        if (direct > 0) {
+          rotate = -arccosA;
+        }
+
+        this.focusBox.rotate = (this.focusBox.rotate + rotate) % 360;
+        for (let id of this.focusList) {
+          this.domNodesObj[id].outerStyle.rotate =
+            (this.domNodesObj[id].outerStyle.rotate + rotate) % 360;
+        }
       }
     },
     // 对 focusList 的操作
@@ -297,7 +322,6 @@ export const useEditorStore = defineStore('editor', {
       }
       this.updateFocusBox();
     },
-
     // 对 focusBox 的操作
     updateFocusBox() {
       if (this.focusList.length < 1) {

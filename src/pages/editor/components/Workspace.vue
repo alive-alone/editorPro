@@ -132,7 +132,22 @@ const mouseZoom = (event: MouseEvent, type: string) => {
   };
 };
 
-const mouseRotate = (event: MouseEvent) => {};
+const mouseRotate = (event: MouseEvent) => {
+  const prePoint = {
+    x: event.clientX,
+    y: event.clientY,
+  };
+  document.onmousemove = (e: MouseEvent) => {
+    editorStore.changeMoveStatue(true);
+    editorStore.mouseRotate(prePoint, { x: e.clientX, y: e.clientY });
+  };
+  document.onmouseup = function () {
+    setTimeout(() => {
+      editorStore.changeMoveStatue(false);
+    });
+    document.onmousemove = document.onmouseup = null;
+  };
+};
 
 // 监听当前键盘 ctrl 状态
 const watchKeydown = (event: KeyboardEvent) => {
@@ -176,6 +191,7 @@ onUnmounted(() => {
         height: `${item.outerStyle.height}px`,
         left: `${item.outerStyle.left}px`,
         top: `${item.outerStyle.top}px`,
+        rotate: `${item.outerStyle.rotate}deg`,
       }"
       @click="changeFocus(item)"
       @mousedown="blockMousedown($event, item)"
@@ -198,6 +214,7 @@ onUnmounted(() => {
           top: `${editorStore.focusBox.pos[1]}px`,
           width: `${editorStore.focusBox.pos[2]}px`,
           height: `${editorStore.focusBox.pos[3]}px`,
+          rotate: `${editorStore.focusBox.rotate}deg`,
         }"
         :class="{ 'focus-box': true, 'focus-box-drag': editorStore.isMoving }"
         @mousedown.prevent="mousedown"
