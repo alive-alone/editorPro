@@ -261,12 +261,17 @@ export const useEditorStore = defineStore('editor', {
     },
     //
     mouseRotate(
+      preRotate: number,
       startPoint: { x: number; y: number },
       movingPoint: { x: number; y: number }
     ) {
       const boxCenter = {
         x: this.focusBox.pos[0] + this.focusBox.pos[2] / 2,
         y: this.focusBox.pos[1] + this.focusBox.pos[3] / 2,
+      };
+      startPoint = {
+        x: boxCenter.x,
+        y: boxCenter.y + 30,
       };
       let aSquare =
         (startPoint.x - movingPoint.x) ** 2 +
@@ -288,12 +293,44 @@ export const useEditorStore = defineStore('editor', {
         if (direct > 0) {
           rotate = -arccosA;
         }
+        // console.log(startPoint, boxCenter, movingPoint, arccosA);
+        let difRotate = rotate - this.focusBox.rotate;
+        this.focusBox.rotate = rotate;
+        console.log(rotate, difRotate);
+        // for (let id of this.focusList) {
+        //   this.domNodesObj[id].outerStyle.rotate += difRotate;
+        // }
 
-        this.focusBox.rotate = (this.focusBox.rotate + rotate) % 360;
-        for (let id of this.focusList) {
-          this.domNodesObj[id].outerStyle.rotate =
-            (this.domNodesObj[id].outerStyle.rotate + rotate) % 360;
-        }
+        const computeDomMove = (block: object, rotate: number) => {
+          const rotateAbs = Math.abs(rotate);
+          const blockCenter = {
+            x: block.outerStyle.left + block.outerStyle.width / 2,
+            y: block.outerStyle.top + block.outerStyle.height / 2,
+          };
+          const disSquare = {
+            x: (boxCenter.x - blockCenter.x) ** 2,
+            y: (boxCenter.y - blockCenter.y) ** 2,
+          };
+          const bcSquare = disSquare.x + disSquare.y;
+          if (bcSquare > 0) {
+            const aSquare =
+              2 * bcSquare - 4 * Math.sqrt(bcSquare) * Math.cos(rotateAbs);
+            const arccosB = (180 - rotateAbs) / 2;
+            const cosTempX =
+              (disSquare.x + bcSquare - disSquare.y) /
+              (2 * Math.sqrt(disSquare.x) * Math.sqrt(bcSquare));
+            const arccosX = arccosB - (Math.acos(cosTempX) * 180) / Math.PI;
+            const difPos = {
+              x: Math.cos(arccosX) * Math.sqrt(aSquare),
+              y: Math.sin(arccosX) * Math.sqrt(aSquare),
+            };
+            if (rotate > 0) {
+              if (difRotate > 0) {
+              }
+            } else {
+            }
+          }
+        };
       }
     },
     // 对 focusList 的操作

@@ -133,13 +133,17 @@ const mouseZoom = (event: MouseEvent, type: string) => {
 };
 
 const mouseRotate = (event: MouseEvent) => {
-  const prePoint = {
+  let prePoint = {
     x: event.clientX,
     y: event.clientY,
   };
+  let preRotate = editorStore.focusBox.rotate;
   document.onmousemove = (e: MouseEvent) => {
     editorStore.changeMoveStatue(true);
-    editorStore.mouseRotate(prePoint, { x: e.clientX, y: e.clientY });
+    editorStore.mouseRotate(preRotate, prePoint, {
+      x: e.clientX,
+      y: e.clientY,
+    });
   };
   document.onmouseup = function () {
     setTimeout(() => {
