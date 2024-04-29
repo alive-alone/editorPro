@@ -21,6 +21,7 @@ const props = defineProps({
 const state = reactive({
   isClickCtrl: false,
 });
+const workspaceRef = ref();
 const focusBoxRef = ref();
 
 const editorStore = useEditorStore();
@@ -131,18 +132,24 @@ const mouseZoom = (event: MouseEvent, type: string) => {
     document.onmousemove = document.onmouseup = null;
   };
 };
-
+const point = reactive({
+  x: 0,
+  y: 0,
+});
 const mouseRotate = (event: MouseEvent) => {
+  const workspacePos = workspaceRef.value.getBoundingClientRect();
   let prePoint = {
-    x: event.clientX,
-    y: event.clientY,
+    x: event.clientX - workspacePos.left,
+    y: event.clientY - workspacePos.top,
   };
-  let preRotate = editorStore.focusBox.rotate;
+  console.log(workspacePos.left);
+  point.x = prePoint.x;
+  point.y = prePoint.y;
   document.onmousemove = (e: MouseEvent) => {
     editorStore.changeMoveStatue(true);
-    editorStore.mouseRotate(preRotate, prePoint, {
-      x: e.clientX,
-      y: e.clientY,
+    editorStore.mouseRotate(prePoint, {
+      x: e.clientX - workspacePos.left,
+      y: e.clientY - workspacePos.top,
     });
   };
   document.onmouseup = function () {
@@ -181,6 +188,7 @@ onUnmounted(() => {
 
 <template>
   <div
+    ref="workspaceRef"
     class="workspace"
     :style="{ width: `${width}px`, height: `${height}px` }"
   >
@@ -208,6 +216,10 @@ onUnmounted(() => {
         :style="{ opacity: editorStore.isMoving ? 0 : 1 }"
       ></div>
     </div>
+    <div
+      class="temp-point"
+      :style="{ left: `${point.x}px`, top: `${point.y}px` }"
+    ></div>
     <template
       v-if="editorStore.focusBox.isShow && editorStore.focusBox.pos.length"
     >
@@ -322,6 +334,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped lang="scss">
+.temp-point {
+  width: 4px;
+  height: 4px;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background-color: #ff0000;
+}
 .workspace {
   width: 400px;
   height: 772.268px;

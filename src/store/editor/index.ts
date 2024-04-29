@@ -261,7 +261,6 @@ export const useEditorStore = defineStore('editor', {
     },
     //
     mouseRotate(
-      preRotate: number,
       startPoint: { x: number; y: number },
       movingPoint: { x: number; y: number }
     ) {
@@ -269,10 +268,10 @@ export const useEditorStore = defineStore('editor', {
         x: this.focusBox.pos[0] + this.focusBox.pos[2] / 2,
         y: this.focusBox.pos[1] + this.focusBox.pos[3] / 2,
       };
-      startPoint = {
-        x: boxCenter.x,
-        y: boxCenter.y + 30,
-      };
+      // startPoint = {
+      //   x: boxCenter.x,
+      //   y: boxCenter.y + 30,
+      // };
       let aSquare =
         (startPoint.x - movingPoint.x) ** 2 +
         (startPoint.y - movingPoint.y) ** 2;
@@ -285,7 +284,7 @@ export const useEditorStore = defineStore('editor', {
         let cosA =
           (bSquare + cSquare - aSquare) /
           (2 * Math.sqrt(bSquare) * Math.sqrt(cSquare));
-        let arccosA = Math.round((Math.acos(cosA) * 180) / Math.PI);
+        let arccosA = (Math.acos(cosA) * 180) / Math.PI;
         let direct =
           (movingPoint.x - boxCenter.x) * (startPoint.y - boxCenter.y) -
           (movingPoint.y - boxCenter.y) * (startPoint.x - boxCenter.x);
@@ -293,46 +292,47 @@ export const useEditorStore = defineStore('editor', {
         if (direct > 0) {
           rotate = -arccosA;
         }
-        // console.log(startPoint, boxCenter, movingPoint, arccosA);
         let difRotate = rotate - this.focusBox.rotate;
         this.focusBox.rotate = rotate;
-        console.log(rotate, difRotate);
-        // for (let id of this.focusList) {
-        //   this.domNodesObj[id].outerStyle.rotate += difRotate;
-        // }
-
-        const computeDomMove = (block: object, rotate: number) => {
-          const rotateAbs = Math.abs(rotate);
+        const computeDomMovePro = (block: object, difRotate: number) => {
           const blockCenter = {
             x: block.outerStyle.left + block.outerStyle.width / 2,
             y: block.outerStyle.top + block.outerStyle.height / 2,
           };
-          const disSquare = {
-            x: (boxCenter.x - blockCenter.x) ** 2,
-            y: (boxCenter.y - blockCenter.y) ** 2,
+          const rotatePoint = (
+            x: number,
+            y: number,
+            Ox: number,
+            Oy: number,
+            theta: number
+          ) => {
+            var cos = Math.cos(theta);
+            var sin = Math.sin(theta);
+            var dx = x - Ox;
+            var dy = y - Oy;
+            var nx = cos * dx - sin * dy;
+            var ny = sin * dx + cos * dy;
+            nx += Ox;
+            ny += Oy;
+            return [nx, ny];
           };
-          const bcSquare = disSquare.x + disSquare.y;
-          if (bcSquare > 0) {
-            const aSquare =
-              2 * bcSquare - 4 * Math.sqrt(bcSquare) * Math.cos(rotateAbs);
-            const arccosB = (180 - rotateAbs) / 2;
-            const cosTempX =
-              (disSquare.x + bcSquare - disSquare.y) /
-              (2 * Math.sqrt(disSquare.x) * Math.sqrt(bcSquare));
-            const arccosX = arccosB - (Math.acos(cosTempX) * 180) / Math.PI;
-            const difPos = {
-              x: Math.cos(arccosX) * Math.sqrt(aSquare),
-              y: Math.sin(arccosX) * Math.sqrt(aSquare),
-            };
-            if (rotate > 0) {
-              if (difRotate > 0) {
-              }
-            } else {
-            }
-          }
+          const [left, top] = rotatePoint(
+            blockCenter.x,
+            blockCenter.y,
+            boxCenter.x,
+            boxCenter.y,
+            (difRotate / 180) * Math.PI
+          );
+          block.outerStyle.left = left - block.outerStyle.width / 2;
+          block.outerStyle.top = top - block.outerStyle.height / 2;
         };
+        for (let id of this.focusList) {
+          this.domNodesObj[id].outerStyle.rotate = rotate;
+          computeDomMovePro(this.domNodesObj[id], difRotate);
+        }
       }
     },
+    mouseRotatepro() {},
     // 对 focusList 的操作
     changeFocusStatus(id: string, type: string) {
       if (type == 'add') {
