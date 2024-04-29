@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-
+import { RotateMatrix } from '@/utils/math';
 // defineStore 第一个参数是id，必需且值唯一
 export const useEditorStore = defineStore('editor', {
   //state返回一个函数，防止作用域污染
@@ -169,7 +169,8 @@ export const useEditorStore = defineStore('editor', {
     getDomNodes: (state) => state.domNodes,
   },
   actions: {
-    changeMoveStatue(value: boolean) {
+    changeMoveState(value: boolean) {
+      if (this.isMoving === value) return;
       this.isMoving = value;
     },
     changeDomNodeById(
@@ -259,19 +260,19 @@ export const useEditorStore = defineStore('editor', {
         changeSize(this.domNodesObj[id]);
       }
     },
-    //
+    changeRotateState(value: boolean) {
+      this.focusBox.isRotating = value;
+    },
+    // dom 节点跟随鼠标旋转
     mouseRotate(
       startPoint: { x: number; y: number },
-      movingPoint: { x: number; y: number }
+      movingPoint: { x: number; y: number },
+      preRotate: number
     ) {
       const boxCenter = {
         x: this.focusBox.pos[0] + this.focusBox.pos[2] / 2,
         y: this.focusBox.pos[1] + this.focusBox.pos[3] / 2,
       };
-      // startPoint = {
-      //   x: boxCenter.x,
-      //   y: boxCenter.y + 30,
-      // };
       let aSquare =
         (startPoint.x - movingPoint.x) ** 2 +
         (startPoint.y - movingPoint.y) ** 2;
@@ -284,39 +285,25 @@ export const useEditorStore = defineStore('editor', {
         let cosA =
           (bSquare + cSquare - aSquare) /
           (2 * Math.sqrt(bSquare) * Math.sqrt(cSquare));
-        let arccosA = (Math.acos(cosA) * 180) / Math.PI;
+        let arccosA = Math.round((Math.acos(cosA) * 180) / Math.PI);
         let direct =
           (movingPoint.x - boxCenter.x) * (startPoint.y - boxCenter.y) -
           (movingPoint.y - boxCenter.y) * (startPoint.x - boxCenter.x);
+
         let rotate = arccosA;
         if (direct > 0) {
           rotate = -arccosA;
         }
-        let difRotate = rotate - this.focusBox.rotate;
-        this.focusBox.rotate = rotate;
+        preRotate += rotate;
+        let difRotate = preRotate - this.focusBox.rotate;
+        this.focusBox.rotate = preRotate;
         const computeDomMovePro = (block: object, difRotate: number) => {
           const blockCenter = {
             x: block.outerStyle.left + block.outerStyle.width / 2,
             y: block.outerStyle.top + block.outerStyle.height / 2,
           };
-          const rotatePoint = (
-            x: number,
-            y: number,
-            Ox: number,
-            Oy: number,
-            theta: number
-          ) => {
-            var cos = Math.cos(theta);
-            var sin = Math.sin(theta);
-            var dx = x - Ox;
-            var dy = y - Oy;
-            var nx = cos * dx - sin * dy;
-            var ny = sin * dx + cos * dy;
-            nx += Ox;
-            ny += Oy;
-            return [nx, ny];
-          };
-          const [left, top] = rotatePoint(
+
+          const [left, top] = RotateMatrix(
             blockCenter.x,
             blockCenter.y,
             boxCenter.x,
@@ -327,12 +314,11 @@ export const useEditorStore = defineStore('editor', {
           block.outerStyle.top = top - block.outerStyle.height / 2;
         };
         for (let id of this.focusList) {
-          this.domNodesObj[id].outerStyle.rotate = rotate;
+          this.domNodesObj[id].outerStyle.rotate += difRotate;
           computeDomMovePro(this.domNodesObj[id], difRotate);
         }
       }
     },
-    mouseRotatepro() {},
     // 对 focusList 的操作
     changeFocusStatus(id: string, type: string) {
       if (type == 'add') {
@@ -362,6 +348,7 @@ export const useEditorStore = defineStore('editor', {
     // 对 focusBox 的操作
     updateFocusBox() {
       if (this.focusList.length < 1) {
+        this.focusBox.rotate = 0;
         this.focusBox.isShow = false;
       } else {
         if (this.focusList.length == 1) {
@@ -373,21 +360,68 @@ export const useEditorStore = defineStore('editor', {
             target.outerStyle.width,
             target.outerStyle.height,
           ];
+          this.focusBox.rotate = target.outerStyle.rotate;
           this.focusBox.type = target.key == 'img' ? 'box' : 'text';
         } else {
           this.focusBox.type = 'box';
+          this.focusBox.rotate = 0;
           let maxMin = [Infinity, Infinity, 0, 0]; //[minLeft, minTop, maxRight, maxBottom]
           for (let id of this.focusList) {
             let target = this.domNodesObj[id].outerStyle;
             if (this.domNodesObj[id].key == 'text') {
               this.focusBox.type = 'text';
             }
+            const blockCenter = {
+              x: target.left + target.width / 2,
+              y: target.top + target.height / 2,
+            };
             let points = [
               target.left,
               target.top,
               target.left + target.width,
               target.top + target.height,
             ];
+            if (target.rotate !== 0) {
+              const Rotate = (target.rotate / 180) * Math.PI;
+              const [x1, y1] = RotateMatrix(
+                target.left,
+                target.top,
+                blockCenter.x,
+                blockCenter.y,
+                Rotate
+              );
+              const [x2, y2] = RotateMatrix(
+                target.left,
+                target.top + target.height,
+                blockCenter.x,
+                blockCenter.y,
+                (target.rotate / 180) * Math.PI
+              );
+              const [x3, y3] = RotateMatrix(
+                target.left + target.width,
+                target.top + target.height,
+                blockCenter.x,
+                blockCenter.y,
+                (target.rotate / 180) * Math.PI
+              );
+              const [x4, y4] = RotateMatrix(
+                target.left + target.width,
+                target.top,
+                blockCenter.x,
+                blockCenter.y,
+                (target.rotate / 180) * Math.PI
+              );
+              if (0 > target.rotate && target.rotate >= -90) {
+                points = [x1, y4, x3, y2];
+              } else if (-90 > target.rotate && target.rotate >= -180) {
+                points = [x4, y3, x2, y1];
+              } else if (0 < target.rotate && target.rotate <= 90) {
+                points = [x2, y1, x4, y3];
+              } else {
+                points = [x3, y2, x1, y4];
+              }
+              console.log(points);
+            }
             maxMin[0] = Math.min(maxMin[0], points[0]);
             maxMin[1] = Math.min(maxMin[1], points[1]);
             maxMin[2] = Math.max(maxMin[2], points[2]);

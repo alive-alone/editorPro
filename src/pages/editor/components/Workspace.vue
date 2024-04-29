@@ -75,7 +75,7 @@ const mousedown = (event: MouseEvent) => {
   const x1 = event.clientX;
   const y1 = event.clientY;
   const mousemove = (e: MouseEvent) => {
-    editorStore.changeMoveStatue(true);
+    editorStore.changeMoveState(true);
     const x2 = e.clientX;
     const y2 = e.clientY;
     const computedLeft = x2 - x1 - preMoveDis.left;
@@ -85,9 +85,8 @@ const mousedown = (event: MouseEvent) => {
     editorStore.moveDomNode(computedLeft, computedTop);
   };
   const mouseup = () => {
-    // console.log('mouseup');
     setTimeout(() => {
-      editorStore.changeMoveStatue(false);
+      editorStore.changeMoveState(false);
     });
     // 及时取消监听事件
     document.removeEventListener('mousemove', mousemove);
@@ -122,12 +121,12 @@ const mouseZoom = (event: MouseEvent, type: string) => {
     const computedTop = y2 - y1 - preMoveDis.top;
     preMoveDis.left = x2 - x1;
     preMoveDis.top = y2 - y1;
-    editorStore.changeMoveStatue(true);
+    editorStore.changeMoveState(true);
     editorStore.zoomDomNode(type, computedLeft, computedTop);
   };
   document.onmouseup = function () {
     setTimeout(() => {
-      editorStore.changeMoveStatue(false);
+      editorStore.changeMoveState(false);
     });
     document.onmousemove = document.onmouseup = null;
   };
@@ -142,19 +141,25 @@ const mouseRotate = (event: MouseEvent) => {
     x: event.clientX - workspacePos.left,
     y: event.clientY - workspacePos.top,
   };
-  console.log(workspacePos.left);
+  const preRotate = editorStore.focusBox.rotate;
   point.x = prePoint.x;
   point.y = prePoint.y;
+  editorStore.changeRotateState(true);
   document.onmousemove = (e: MouseEvent) => {
-    editorStore.changeMoveStatue(true);
-    editorStore.mouseRotate(prePoint, {
-      x: e.clientX - workspacePos.left,
-      y: e.clientY - workspacePos.top,
-    });
+    editorStore.changeMoveState(true);
+    editorStore.mouseRotate(
+      prePoint,
+      {
+        x: e.clientX - workspacePos.left,
+        y: e.clientY - workspacePos.top,
+      },
+      preRotate
+    );
   };
   document.onmouseup = function () {
     setTimeout(() => {
-      editorStore.changeMoveStatue(false);
+      editorStore.changeRotateState(false);
+      editorStore.changeMoveState(false);
     });
     document.onmousemove = document.onmouseup = null;
   };
@@ -193,7 +198,7 @@ onUnmounted(() => {
     :style="{ width: `${width}px`, height: `${height}px` }"
   >
     <div
-      draggable="true"
+      draggable="false"
       :class="{ block: true, block__hover: !item.focus }"
       v-for="item in list"
       :key="item.id"
@@ -209,17 +214,16 @@ onUnmounted(() => {
       @mousedown="blockMousedown($event, item)"
       @click.stop
     >
-      <!--        @click="changeFocus(item)"      @mousedown="blockMousedown($event, item)" -->
       <RenderBlock :details="item"></RenderBlock>
       <div
         :class="{ 'box-border': true, 'box-border__focus': item.focus }"
         :style="{ opacity: editorStore.isMoving ? 0 : 1 }"
       ></div>
     </div>
-    <div
+    <!-- <div
       class="temp-point"
       :style="{ left: `${point.x}px`, top: `${point.y}px` }"
-    ></div>
+    ></div> -->
     <template
       v-if="editorStore.focusBox.isShow && editorStore.focusBox.pos.length"
     >
@@ -317,13 +321,12 @@ onUnmounted(() => {
           @mousedown.stop
           :style="{ transform: `rotate(${-editorStore.focusBox.rotate}deg)` }"
         >
-          <!-- <b style="transform: matrix(1, 0, 0, 1, 0, 0)">
-            <span style="display: none">0°</span>
-          </b> -->
           <img src="@/assets/icon/editor/rotate.svg" class="rotate" />
           <span
             class="rotate-value"
-            :style="{ display: editorStore.focusBox.isRotating ? '' : 'none' }"
+            :style="{
+              display: editorStore.focusBox.isRotating ? 'block' : 'none',
+            }"
           >
             {{ editorStore.focusBox.rotate }}°
           </span>
