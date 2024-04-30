@@ -17,6 +17,7 @@ const props = defineProps({
     default: [],
   },
 });
+const cext = defineEmits(['getElement']);
 
 const state = reactive({
   isClickCtrl: false,
@@ -56,7 +57,7 @@ const blockMousedown = (event: MouseEvent, item: Object) => {
       target?.removeEventListener('mousemove', blockMove);
     };
     const mouseup = () => {
-      console.log('mouseup');
+      // console.log('mouseup');
       target?.removeEventListener('mousemove', blockMove);
       target?.removeEventListener('mouseup', mouseup);
     };
@@ -75,6 +76,7 @@ const mousedown = (event: MouseEvent) => {
   const x1 = event.clientX;
   const y1 = event.clientY;
   const mousemove = (e: MouseEvent) => {
+    // console.log('mousemove');
     editorStore.changeMoveState(true);
     const x2 = e.clientX;
     const y2 = e.clientY;
@@ -92,6 +94,8 @@ const mousedown = (event: MouseEvent) => {
     document.removeEventListener('mousemove', mousemove);
     document.removeEventListener('mouseup', mouseup);
   };
+  document.removeEventListener('mouseup', mouseup);
+  document.removeEventListener('mousemove', mousemove);
   document?.addEventListener('mousemove', mousemove);
   document?.addEventListener('mouseup', mouseup);
 };
@@ -182,6 +186,7 @@ onMounted(() => {
   // 开启键盘监听事件
   document.addEventListener('keydown', watchKeydown);
   document.addEventListener('keyup', watchKeyup);
+  cext('getElement', workspaceRef.value);
 });
 
 onUnmounted(() => {

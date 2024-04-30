@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, ref, onMounted } from 'vue';
 import Workspace from './components/Workspace.vue';
 import { useEditorStore } from '@/store/editor';
-
+const state = reactive({
+  workspacePos: {} as DOMRect,
+});
 const selectBox = reactive({
   isShow: false,
   pos: [0, 0, 0, 0],
 });
+const workspaceRef = ref();
 const editorStore = useEditorStore();
 
+const getWorkspacePos = (element: Element) => {
+  if (element) {
+    state.workspacePos = element.getBoundingClientRect();
+  }
+};
 const clearFocusList = () => {
   // console.log('clearFocusList', editorStore.isMoving);
   if (!editorStore.isMoving) {
@@ -33,7 +41,7 @@ const boxSelect = (event: MouseEvent) => {
   }, 150);
   let isFirst = true;
   const mouseMove = (e: MouseEvent) => {
-    // console.log('mouseMove');
+    // console.log('----------------mouseMove');
     if (isFirst) {
       clearTimeout(timer);
       isFirst = false;
@@ -55,21 +63,41 @@ const boxSelect = (event: MouseEvent) => {
     if (height < 0) {
       selectBox.pos[1] = y2;
     }
+    editorStore.rangeSelect(
+      {
+        left: selectBox.pos[0],
+        top: selectBox.pos[1],
+        width: selectBox.pos[2],
+        height: selectBox.pos[3],
+      },
+      { x: state.workspacePos.left, y: state.workspacePos.top }
+    );
   };
   // document.addEventListener('mousemove', mouseMove);
+  document.onmousemove = null;
   document.onmousemove = mouseMove;
   document.onmouseup = function () {
+    if (editorStore.focusList.length > 0) {
+      editorStore.updateFocusBox();
+    }
     // console.log('onmouseup');
     selectBox.isShow = false;
     document.onmousemove = null;
     document.onmouseup = null;
   };
 };
+onMounted(() => {
+  getWorkspacePos();
+});
 </script>
 
 <template>
-  <div class="body" @mousedown="boxSelect" @mouseenter.capture>
-    <Workspace :data="editorStore.domNodesObj"></Workspace>
+  <div class="body" @mousedown="boxSelect">
+    <Workspace
+      ref="workspaceRef"
+      :data="editorStore.domNodesObj"
+      @getElement="getWorkspacePos"
+    ></Workspace>
     <template v-if="selectBox.isShow">
       <div
         class="box-select"

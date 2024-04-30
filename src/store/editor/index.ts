@@ -320,8 +320,38 @@ export const useEditorStore = defineStore('editor', {
         }
       }
     },
+    // 鼠标滑动框选
+    rangeSelect(
+      box: { left: number; top: number; width: number; height: number },
+      offect: { x: number; y: number }
+    ) {
+      // [left, right, top, bottom]
+      this.clearFocusList();
+      const boxSize = [
+        box.left,
+        box.left + box.width,
+        box.top,
+        box.top + box.height,
+      ];
+      Object.keys(this.domNodesObj).forEach((id) => {
+        const target = this.domNodesObj[id].outerStyle;
+        // [x, y]
+        const blockCenter = [
+          offect.x + target.left + target.width / 2,
+          offect.y + target.top + target.height / 2,
+        ];
+        if (
+          boxSize[0] <= blockCenter[0] &&
+          boxSize[1] >= blockCenter[0] &&
+          boxSize[2] <= blockCenter[1] &&
+          boxSize[3] >= blockCenter[1]
+        ) {
+          this.changeFocusStatus(id, 'add', false);
+        }
+      });
+    },
     // 对 focusList 的操作
-    changeFocusStatus(id: string, type: string) {
+    changeFocusStatus(id: string, type: string, isUpdateFocusBox = true) {
       if (type == 'add') {
         this.domNodesObj[id].focus = true;
         this.focusList.push(id);
@@ -335,7 +365,9 @@ export const useEditorStore = defineStore('editor', {
         this.domNodesObj[id].focus = false;
         this.focusList = this.focusList.filter((itemId) => itemId != id);
       }
-      this.updateFocusBox();
+      if (isUpdateFocusBox) {
+        this.updateFocusBox();
+      }
     },
     clearFocusList() {
       if (this.focusList.length) {
