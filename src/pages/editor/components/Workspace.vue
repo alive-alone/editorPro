@@ -199,7 +199,10 @@ onUnmounted(() => {
   >
     <div
       draggable="false"
-      :class="{ block: true, block__hover: !item.focus }"
+      :class="{
+        block: true,
+        block__hover: !item.focus && !editorStore.isMoving,
+      }"
       v-for="item in list"
       :key="item.id"
       :style="{
@@ -211,8 +214,9 @@ onUnmounted(() => {
         rotate: `${item.outerStyle.rotate}deg`,
       }"
       @click="changeFocus(item)"
-      @mousedown="blockMousedown($event, item)"
+      @mousedown.prevent="blockMousedown($event, item)"
       @click.stop
+      @mousedown.stop
     >
       <RenderBlock :details="item"></RenderBlock>
       <div
@@ -473,6 +477,7 @@ onUnmounted(() => {
       border-radius: 50%;
       background-color: #ffffff;
       opacity: 1;
+      user-select: none;
     }
     .rotate-value {
       position: absolute;

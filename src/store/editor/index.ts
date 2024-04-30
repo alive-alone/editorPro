@@ -14,8 +14,8 @@ export const useEditorStore = defineStore('editor', {
           focus: false,
           outerStyle: {
             left: 10,
-            width: 297,
-            height: 57.48,
+            width: 127,
+            height: 24.579,
             borderRadius: 0,
             top: 10,
             zIndex: 1,
@@ -25,11 +25,11 @@ export const useEditorStore = defineStore('editor', {
           },
           textInnerStyle: {
             fontFamily: '',
-            fontSize: 47.7,
+            fontSize: 19.7,
+            lineHeight: 24.579,
             fontStyle: '',
             fontWeight: 600,
             color: '#000000',
-            lineHeight: 57.48,
             text: '双击编辑标题',
             textAlign: 'center',
           },
@@ -47,8 +47,8 @@ export const useEditorStore = defineStore('editor', {
           focus: false,
           outerStyle: {
             left: 10,
-            width: 297,
-            height: 57.48,
+            width: 127,
+            height: 24.579,
             borderRadius: 0,
             top: 10,
             zIndex: 1,
@@ -58,11 +58,12 @@ export const useEditorStore = defineStore('editor', {
           },
           textInnerStyle: {
             fontFamily: '',
-            fontSize: 47.7,
+            fontSize: 19.7,
+            lineHeight: 24.579,
             fontStyle: '',
             fontWeight: 600,
             color: '#000000',
-            lineHeight: 57.48,
+
             text: '双击编辑标题',
             textAlign: 'center',
           },
@@ -78,8 +79,8 @@ export const useEditorStore = defineStore('editor', {
           focus: false,
           outerStyle: {
             left: 20,
-            width: 297,
-            height: 57.48,
+            width: 127,
+            height: 24.579,
             borderRadius: 0,
             top: 200,
             zIndex: 1,
@@ -89,11 +90,11 @@ export const useEditorStore = defineStore('editor', {
           },
           textInnerStyle: {
             fontFamily: '',
-            fontSize: 47.7,
+            fontSize: 19.7,
+            lineHeight: 24.579,
             fontStyle: '',
             fontWeight: 600,
             color: '#000000',
-            lineHeight: 57.48,
             text: '双击编辑标题',
             textAlign: 'center',
           },
@@ -420,7 +421,6 @@ export const useEditorStore = defineStore('editor', {
               } else {
                 points = [x3, y2, x1, y4];
               }
-              console.log(points);
             }
             maxMin[0] = Math.min(maxMin[0], points[0]);
             maxMin[1] = Math.min(maxMin[1], points[1]);
