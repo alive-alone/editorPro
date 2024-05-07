@@ -216,7 +216,7 @@ onUnmounted(() => {
         height: `${item.outerStyle.height}px`,
         left: `${item.outerStyle.left}px`,
         top: `${item.outerStyle.top}px`,
-        rotate: `${item.outerStyle.rotate}deg`,
+        transform: `rotate(${item.outerStyle.rotate}deg)`,
       }"
       @click="changeFocus(item)"
       @mousedown.prevent="blockMousedown($event, item)"

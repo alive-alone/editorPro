@@ -55,6 +55,7 @@ export const useEditorStore = defineStore('editor', {
             rotate: 0,
             opacity: 1,
             backgroundColor: '',
+            transform: [0, 0],
           },
           textInnerStyle: {
             fontFamily: '',
@@ -63,7 +64,6 @@ export const useEditorStore = defineStore('editor', {
             fontStyle: '',
             fontWeight: 600,
             color: '#000000',
-
             text: '双击编辑标题',
             textAlign: 'center',
           },
@@ -87,6 +87,7 @@ export const useEditorStore = defineStore('editor', {
             rotate: 0,
             opacity: 1,
             backgroundColor: '',
+            transform: [0, 0],
           },
           textInnerStyle: {
             fontFamily: '',
@@ -118,6 +119,7 @@ export const useEditorStore = defineStore('editor', {
             rotate: 0,
             opacity: 1,
             backgroundColor: '',
+            transform: [0, 0],
           },
           textInnerStyle: {
             fontFamily: '',
@@ -149,6 +151,7 @@ export const useEditorStore = defineStore('editor', {
             rotate: 0,
             opacity: 1,
             backgroundColor: '',
+            transform: [0, 0],
           },
           imgInnerStyle: {
             alt: '',
@@ -164,6 +167,7 @@ export const useEditorStore = defineStore('editor', {
         type: 'text',
         pos: [] as Array<number>, //[left, top, width, height]
       },
+      snaplines: [],
     };
   },
   getters: {
@@ -186,6 +190,8 @@ export const useEditorStore = defineStore('editor', {
     },
     // 移动 focusBox 节点
     moveDomNode(left: number, top: number) {
+      const [difLeft, difTop] = this.getSnaplines();
+      console.log(difLeft, difTop);
       for (let id of this.focusList) {
         this.domNodesObj[id].outerStyle.left += left;
         this.domNodesObj[id].outerStyle.top += top;
@@ -468,6 +474,125 @@ export const useEditorStore = defineStore('editor', {
         }
         this.focusBox.isShow = true;
       }
+    },
+    // 获取渐进辅助线
+    getSnaplines() {
+      const snaplines = {
+        left: {
+          min: Infinity,
+          dif: 0,
+          values: [] as Array<Array<number | string>>,
+        },
+        top: {
+          min: Infinity,
+          dif: 0,
+          values: [] as Array<Array<number | string>>,
+        },
+      };
+      const focusPos = this.focusBox.pos;
+      const boxPos = [
+        focusPos[0],
+        focusPos[0] + focusPos[2] / 2,
+        focusPos[0] + focusPos[2],
+        focusPos[1],
+        focusPos[1] + focusPos[3] / 2,
+        focusPos[1] + focusPos[3],
+      ];
+      Object.keys(this.domNodesObj).forEach((id) => {
+        if (!this.focusList.includes(id)) {
+          const target = this.domNodesObj[id].outerStyle;
+          const pos = [
+            target.left,
+            target.left + target.width / 2,
+            target.left + target.width,
+            target.top,
+            target.top + target.height / 2,
+            target.top + target.height,
+          ];
+          const compare = (
+            target: number,
+            pos: [number, number, number],
+            threshold = 5
+          ) => {
+            let min = Infinity;
+            let result = [false, 0, 0] as [boolean, number, number];
+            for (let i of pos) {
+              let dif = Math.abs(i - target);
+              if (dif < threshold && dif <= min) {
+                result[0] = true;
+                if (dif < min) {
+                  min = dif;
+                  result[1] = i - target;
+                  result[2] = dif;
+                }
+              }
+            }
+            return result;
+          };
+
+          for (let i = 0; i < 3; i++) {
+            const res = compare(boxPos[i], [pos[0], pos[1], pos[2]]);
+            if (res[0] && res[2] <= snaplines.left.min) {
+              let line = [
+                pos[0],
+                Math.min(pos[3], boxPos[3]),
+                Math.max(
+                  pos[3] < boxPos[3] ? boxPos[5] - pos[3] : pos[5] - boxPos[3],
+                  boxPos[5] - boxPos[3],
+                  pos[5] - pos[3]
+                ),
+                'y',
+              ]; // [left, top, length, type]
+              if (res[2] < snaplines.left.min) {
+                snaplines.left.min = res[2];
+                snaplines.left.dif = res[1];
+                snaplines.left.values = [line];
+              } else {
+                snaplines.left.values.push(line);
+              }
+            }
+          }
+          for (let i = 3; i < 6; i++) {
+            const res = compare(boxPos[i], [pos[3], pos[4], pos[5]]);
+            if (res[0] && res[2] <= snaplines.top.min) {
+              let line = [
+                pos[0],
+                Math.min(pos[3], boxPos[3]),
+                Math.max(
+                  pos[0] < boxPos[0] ? boxPos[2] - pos[0] : pos[2] - boxPos[0],
+                  boxPos[2] - boxPos[0],
+                  pos[2] - pos[0]
+                ),
+                'x',
+              ]; // [left, top, length, type]
+              if (res[2] < snaplines.top.min) {
+                snaplines.top.min = res[2];
+                snaplines.top.dif = res[1];
+                snaplines.top.values = [line];
+              } else {
+                snaplines.top.values.push(line);
+              }
+            }
+          }
+        }
+      });
+      let list = [];
+      if (snaplines.left.values.length > 0) {
+        for (let val of snaplines.left.values) {
+          val[1] = Math.min(val[1] as number, boxPos[3] + snaplines.top.dif);
+          val[2] += snaplines.top.dif;
+          list.push(val);
+        }
+      }
+      if (snaplines.top.values.length > 0) {
+        for (let val of snaplines.top.values) {
+          val[0] = Math.min(val[0] as number, boxPos[0] + snaplines.left.dif);
+          val[2] += snaplines.left.dif;
+          list.push(val);
+        }
+      }
+      this.snaplines = [...list];
+      return [snaplines.left.dif, snaplines.top.dif];
     },
   },
 });
