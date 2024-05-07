@@ -193,10 +193,19 @@ export const useEditorStore = defineStore('editor', {
       const [difLeft, difTop] = this.getSnaplines();
       console.log(difLeft, difTop);
       for (let id of this.focusList) {
-        this.domNodesObj[id].outerStyle.left += left;
-        this.domNodesObj[id].outerStyle.top += top;
+        this.domNodesObj[id].outerStyle.transform = [left, top];
       }
       this.updateFocusBox();
+    },
+    // 将 transform 移动的距离同步到 left 、top
+    syncToReal() {
+      for (let id of this.focusList) {
+        this.domNodesObj[id].outerStyle.left +=
+          this.domNodesObj[id].outerStyle.transform[0];
+        this.domNodesObj[id].outerStyle.top +=
+          this.domNodesObj[id].outerStyle.transform[1];
+        this.domNodesObj[id].outerStyle.transform = [0, 0];
+      }
     },
     // 通过 focus-box 进行缩放
     zoomDomNode(type: string, movementX: number, movementY: number) {

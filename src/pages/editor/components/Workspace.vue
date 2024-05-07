@@ -80,13 +80,14 @@ const mousedown = (event: MouseEvent) => {
     editorStore.changeMoveState(true);
     const x2 = e.clientX;
     const y2 = e.clientY;
-    const computedLeft = x2 - x1 - preMoveDis.left;
-    const computedTop = y2 - y1 - preMoveDis.top;
-    preMoveDis.left = x2 - x1;
-    preMoveDis.top = y2 - y1;
+    const computedLeft = x2 - x1;
+    const computedTop = y2 - y1;
+    // preMoveDis.left = x2 - x1;
+    // preMoveDis.top = y2 - y1;
     editorStore.moveDomNode(computedLeft, computedTop);
   };
   const mouseup = () => {
+    editorStore.syncToReal();
     setTimeout(() => {
       editorStore.changeMoveState(false);
     });
@@ -216,7 +217,7 @@ onUnmounted(() => {
         height: `${item.outerStyle.height}px`,
         left: `${item.outerStyle.left}px`,
         top: `${item.outerStyle.top}px`,
-        transform: `rotate(${item.outerStyle.rotate}deg)`,
+        transform: `translate(${item.outerStyle.transform[0]}px, ${item.outerStyle.transform[1]}px) rotate(${item.outerStyle.rotate}deg)`,
       }"
       @click="changeFocus(item)"
       @mousedown.prevent="blockMousedown($event, item)"
