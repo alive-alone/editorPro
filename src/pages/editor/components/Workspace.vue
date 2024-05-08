@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, onUnmounted, ref } from 'vue';
 import RenderBlock from './RenderBlock.vue';
 import { useEditorStore } from '@/store/editor';
-
+import { throttle } from '@/utils/base';
 const props = defineProps({
   width: {
     type: Number,
@@ -70,21 +70,24 @@ const blockMousedown = (event: MouseEvent, item: Object) => {
 const mousedown = (event: MouseEvent) => {
   // console.log('focusBox mousedown');
   const preMoveDis = {
-    left: 0,
-    top: 0,
+    left: event.clientX,
+    top: event.clientY,
   };
   const x1 = event.clientX;
   const y1 = event.clientY;
   const mousemove = (e: MouseEvent) => {
-    // console.log('mousemove');
+    console.log('mousemove - function');
     editorStore.changeMoveState(true);
     const x2 = e.clientX;
     const y2 = e.clientY;
     const computedLeft = x2 - x1;
     const computedTop = y2 - y1;
-    // preMoveDis.left = x2 - x1;
-    // preMoveDis.top = y2 - y1;
-    editorStore.moveDomNode(computedLeft, computedTop);
+    editorStore.moveDomNode(computedLeft, computedTop, [
+      computedLeft < 0 ? -1 : 1,
+      computedTop < 0 ? -1 : 1,
+    ]);
+    preMoveDis.left = x2;
+    preMoveDis.top = y2;
   };
   const mouseup = () => {
     editorStore.syncToReal();
@@ -343,6 +346,20 @@ onUnmounted(() => {
         </i>
       </div>
     </template>
+    <template v-if="editorStore.snaplines.length > 0">
+      <!-- [left, top, length, type] -->
+      <div
+        v-for="item in editorStore.snaplines"
+        :key="`${item[0]}${item[1]}${item[2]}${item[3]}`"
+        class="guidelines"
+        :style="{
+          left: `${item[0]}px`,
+          top: `${item[1]}px`,
+          width: `${item[3] == 'x' ? item[2] : 0}px`,
+          height: `${item[3] == 'y' ? item[2] : 0}px`,
+        }"
+      ></div>
+    </template>
   </div>
 </template>
 
@@ -534,5 +551,15 @@ onUnmounted(() => {
   b {
     opacity: 0;
   }
+}
+.guidelines {
+  position: absolute;
+  z-index: 8;
+  overflow: hidden;
+  border-color: #ff4aff;
+  border-style: solid;
+  border-width: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
 }
 </style>

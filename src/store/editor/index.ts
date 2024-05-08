@@ -1,44 +1,13 @@
 import { defineStore } from 'pinia';
 import { RotateMatrix } from '@/utils/math';
+import { throttle } from '@/utils/base';
 // defineStore 第一个参数是id，必需且值唯一
+let ignore = false;
 export const useEditorStore = defineStore('editor', {
   //state返回一个函数，防止作用域污染
   state: () => {
     return {
       isMoving: false,
-      domNodes: [
-        {
-          id: '2024417172122966970',
-          key: 'text',
-          dragging: false,
-          focus: false,
-          outerStyle: {
-            left: 10,
-            width: 127,
-            height: 24.579,
-            borderRadius: 0,
-            top: 10,
-            zIndex: 1,
-            rotate: 0,
-            opacity: 1,
-            backgroundColor: '',
-          },
-          textInnerStyle: {
-            fontFamily: '',
-            fontSize: 19.7,
-            lineHeight: 24.579,
-            fontStyle: '',
-            fontWeight: 600,
-            color: '#000000',
-            text: '双击编辑标题',
-            textAlign: 'center',
-          },
-          ingInnerStyle: {
-            alt: '',
-            src: '',
-          },
-        },
-      ],
       domNodesObj: {
         '2024417172122966970': {
           id: '2024417172122966970',
@@ -189,11 +158,23 @@ export const useEditorStore = defineStore('editor', {
       }
     },
     // 移动 focusBox 节点
-    moveDomNode(left: number, top: number) {
-      const [difLeft, difTop] = this.getSnaplines();
+    moveDomNode(left: number, top: number, direct: [number, number]) {
+      console.log('moveDomNode');
+      const res = this.getSnaplines();
+      let difLeft = left;
+      let difTop = top;
+      // // 向左移动向左靠近，向右移动向右靠近
+      // if ((direct[0] == -1 && res[0] < 0) || (direct[0] == 1 && res[0] > 0)) {
+      //   difLeft += res[0];
+      // }
+      // // 向上移动向上靠近，向下移动向下靠近
+      // if ((direct[1] == -1 && res[1] < 0) || (direct[1] == 1 && res[1] > 0)) {
+      //   difTop += res[1];
+      // }
       console.log(difLeft, difTop);
       for (let id of this.focusList) {
-        this.domNodesObj[id].outerStyle.transform = [left, top];
+        this.domNodesObj[id].outerStyle.transform[0] = difLeft;
+        this.domNodesObj[id].outerStyle.transform[1] = difTop;
       }
       this.updateFocusBox();
     },
@@ -403,8 +384,8 @@ export const useEditorStore = defineStore('editor', {
           // [left, top, width, height, 'text' : 'box']
           let target = this.domNodesObj[this.focusList[0]];
           this.focusBox.pos = [
-            target.outerStyle.left,
-            target.outerStyle.top,
+            target.outerStyle.left + target.outerStyle.transform[0],
+            target.outerStyle.top + target.outerStyle.transform[1],
             target.outerStyle.width,
             target.outerStyle.height,
           ];
@@ -420,41 +401,43 @@ export const useEditorStore = defineStore('editor', {
               this.focusBox.type = 'text';
             }
             const blockCenter = {
-              x: target.left + target.width / 2,
-              y: target.top + target.height / 2,
+              left: target.left + target.transform[0],
+              top: target.top + target.transform[1],
+              x: target.left + target.transform[0] + target.width / 2,
+              y: target.top + target.transform[1] + target.height / 2,
             };
             let points = [
-              target.left,
-              target.top,
-              target.left + target.width,
-              target.top + target.height,
+              blockCenter.left,
+              blockCenter.top,
+              blockCenter.left + target.width,
+              blockCenter.top + target.height,
             ];
             if (target.rotate !== 0) {
               const Rotate = (target.rotate / 180) * Math.PI;
               const [x1, y1] = RotateMatrix(
-                target.left,
-                target.top,
+                blockCenter.left,
+                blockCenter.top,
                 blockCenter.x,
                 blockCenter.y,
                 Rotate
               );
               const [x2, y2] = RotateMatrix(
-                target.left,
-                target.top + target.height,
+                blockCenter.left,
+                blockCenter.top + target.height,
                 blockCenter.x,
                 blockCenter.y,
                 (target.rotate / 180) * Math.PI
               );
               const [x3, y3] = RotateMatrix(
-                target.left + target.width,
-                target.top + target.height,
+                blockCenter.left + target.width,
+                blockCenter.top + target.height,
                 blockCenter.x,
                 blockCenter.y,
                 (target.rotate / 180) * Math.PI
               );
               const [x4, y4] = RotateMatrix(
-                target.left + target.width,
-                target.top,
+                blockCenter.left + target.width,
+                blockCenter.top,
                 blockCenter.x,
                 blockCenter.y,
                 (target.rotate / 180) * Math.PI
@@ -521,10 +504,10 @@ export const useEditorStore = defineStore('editor', {
           const compare = (
             target: number,
             pos: [number, number, number],
-            threshold = 5
+            threshold = 8
           ) => {
             let min = Infinity;
-            let result = [false, 0, 0] as [boolean, number, number];
+            let result = [false, 0, 0, 0] as [boolean, number, number, number];
             for (let i of pos) {
               let dif = Math.abs(i - target);
               if (dif < threshold && dif <= min) {
@@ -533,6 +516,7 @@ export const useEditorStore = defineStore('editor', {
                   min = dif;
                   result[1] = i - target;
                   result[2] = dif;
+                  result[3] = i;
                 }
               }
             }
@@ -543,7 +527,7 @@ export const useEditorStore = defineStore('editor', {
             const res = compare(boxPos[i], [pos[0], pos[1], pos[2]]);
             if (res[0] && res[2] <= snaplines.left.min) {
               let line = [
-                pos[0],
+                res[3],
                 Math.min(pos[3], boxPos[3]),
                 Math.max(
                   pos[3] < boxPos[3] ? boxPos[5] - pos[3] : pos[5] - boxPos[3],
@@ -566,7 +550,7 @@ export const useEditorStore = defineStore('editor', {
             if (res[0] && res[2] <= snaplines.top.min) {
               let line = [
                 pos[0],
-                Math.min(pos[3], boxPos[3]),
+                res[3],
                 Math.max(
                   pos[0] < boxPos[0] ? boxPos[2] - pos[0] : pos[2] - boxPos[0],
                   boxPos[2] - boxPos[0],
