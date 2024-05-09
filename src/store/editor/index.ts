@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { RotateMatrix } from '@/utils/math';
-import { throttle } from '@/utils/base';
+import { NEAR_THRESHOLD } from '@/config/base';
+// 计算移动总量
+let totalMove = [0, 0];
 // defineStore 第一个参数是id，必需且值唯一
-let ignore = false;
 export const useEditorStore = defineStore('editor', {
   //state返回一个函数，防止作用域污染
   state: () => {
@@ -136,7 +137,10 @@ export const useEditorStore = defineStore('editor', {
         type: 'text',
         pos: [] as Array<number>, //[left, top, width, height]
       },
-      snaplines: [],
+      snaplines: {
+        x: [],
+        y: [],
+      },
     };
   },
   getters: {
@@ -158,25 +162,38 @@ export const useEditorStore = defineStore('editor', {
       }
     },
     // 移动 focusBox 节点
-    moveDomNode(left: number, top: number, direct: [number, number]) {
-      console.log('moveDomNode');
-      const res = this.getSnaplines();
+    moveDomNode(left: number, top: number) {
+      const res = this.getSnaplines(left, top);
       let difLeft = left;
       let difTop = top;
-      // // 向左移动向左靠近，向右移动向右靠近
-      // if ((direct[0] == -1 && res[0] < 0) || (direct[0] == 1 && res[0] > 0)) {
-      //   difLeft += res[0];
-      // }
-      // // 向上移动向上靠近，向下移动向下靠近
-      // if ((direct[1] == -1 && res[1] < 0) || (direct[1] == 1 && res[1] > 0)) {
-      //   difTop += res[1];
-      // }
-      console.log(difLeft, difTop);
-      for (let id of this.focusList) {
-        this.domNodesObj[id].outerStyle.transform[0] = difLeft;
-        this.domNodesObj[id].outerStyle.transform[1] = difTop;
+      if (left == -res[0]) {
+        totalMove[0] += left;
       }
-      this.updateFocusBox();
+      if (Math.abs(totalMove[0]) < NEAR_THRESHOLD) {
+        difLeft += res[0];
+      } else {
+        difLeft = totalMove[0];
+        totalMove[0] = 0;
+        this.snaplines.y = [];
+      }
+      if (top == -res[1]) {
+        totalMove[1] += top;
+      }
+      if (Math.abs(totalMove[1]) < NEAR_THRESHOLD) {
+        difTop += res[1];
+      } else {
+        difTop = totalMove[1];
+        totalMove[1] = 0;
+        this.snaplines.x = [];
+      }
+      for (let id of this.focusList) {
+        this.domNodesObj[id].outerStyle.transform[0] += difLeft;
+        this.domNodesObj[id].outerStyle.transform[1] += difTop;
+      }
+      this.updateFocusBox(
+        this.focusBox.pos[0] + difLeft,
+        this.focusBox.pos[1] + difTop
+      );
     },
     // 将 transform 移动的距离同步到 left 、top
     syncToReal() {
@@ -375,100 +392,105 @@ export const useEditorStore = defineStore('editor', {
       this.updateFocusBox();
     },
     // 对 focusBox 的操作
-    updateFocusBox() {
-      if (this.focusList.length < 1) {
-        this.focusBox.rotate = 0;
-        this.focusBox.isShow = false;
+    updateFocusBox(left = 0, top = 0) {
+      if (left && top) {
+        this.focusBox.pos[0] = left;
+        this.focusBox.pos[1] = top;
       } else {
-        if (this.focusList.length == 1) {
-          // [left, top, width, height, 'text' : 'box']
-          let target = this.domNodesObj[this.focusList[0]];
-          this.focusBox.pos = [
-            target.outerStyle.left + target.outerStyle.transform[0],
-            target.outerStyle.top + target.outerStyle.transform[1],
-            target.outerStyle.width,
-            target.outerStyle.height,
-          ];
-          this.focusBox.rotate = target.outerStyle.rotate;
-          this.focusBox.type = target.key == 'img' ? 'box' : 'text';
-        } else {
-          this.focusBox.type = 'box';
+        if (this.focusList.length < 1) {
           this.focusBox.rotate = 0;
-          let maxMin = [Infinity, Infinity, 0, 0]; //[minLeft, minTop, maxRight, maxBottom]
-          for (let id of this.focusList) {
-            let target = this.domNodesObj[id].outerStyle;
-            if (this.domNodesObj[id].key == 'text') {
-              this.focusBox.type = 'text';
-            }
-            const blockCenter = {
-              left: target.left + target.transform[0],
-              top: target.top + target.transform[1],
-              x: target.left + target.transform[0] + target.width / 2,
-              y: target.top + target.transform[1] + target.height / 2,
-            };
-            let points = [
-              blockCenter.left,
-              blockCenter.top,
-              blockCenter.left + target.width,
-              blockCenter.top + target.height,
+          this.focusBox.isShow = false;
+        } else {
+          if (this.focusList.length == 1) {
+            // [left, top, width, height, 'text' : 'box']
+            let target = this.domNodesObj[this.focusList[0]];
+            this.focusBox.pos = [
+              target.outerStyle.left + target.outerStyle.transform[0],
+              target.outerStyle.top + target.outerStyle.transform[1],
+              target.outerStyle.width,
+              target.outerStyle.height,
             ];
-            if (target.rotate !== 0) {
-              const Rotate = (target.rotate / 180) * Math.PI;
-              const [x1, y1] = RotateMatrix(
-                blockCenter.left,
-                blockCenter.top,
-                blockCenter.x,
-                blockCenter.y,
-                Rotate
-              );
-              const [x2, y2] = RotateMatrix(
-                blockCenter.left,
-                blockCenter.top + target.height,
-                blockCenter.x,
-                blockCenter.y,
-                (target.rotate / 180) * Math.PI
-              );
-              const [x3, y3] = RotateMatrix(
-                blockCenter.left + target.width,
-                blockCenter.top + target.height,
-                blockCenter.x,
-                blockCenter.y,
-                (target.rotate / 180) * Math.PI
-              );
-              const [x4, y4] = RotateMatrix(
-                blockCenter.left + target.width,
-                blockCenter.top,
-                blockCenter.x,
-                blockCenter.y,
-                (target.rotate / 180) * Math.PI
-              );
-              if (0 > target.rotate && target.rotate >= -90) {
-                points = [x1, y4, x3, y2];
-              } else if (-90 > target.rotate && target.rotate >= -180) {
-                points = [x4, y3, x2, y1];
-              } else if (0 < target.rotate && target.rotate <= 90) {
-                points = [x2, y1, x4, y3];
-              } else {
-                points = [x3, y2, x1, y4];
+            this.focusBox.rotate = target.outerStyle.rotate;
+            this.focusBox.type = target.key == 'img' ? 'box' : 'text';
+          } else {
+            this.focusBox.type = 'box';
+            this.focusBox.rotate = 0;
+            let maxMin = [Infinity, Infinity, 0, 0]; //[minLeft, minTop, maxRight, maxBottom]
+            for (let id of this.focusList) {
+              let target = this.domNodesObj[id].outerStyle;
+              if (this.domNodesObj[id].key == 'text') {
+                this.focusBox.type = 'text';
               }
+              const blockCenter = {
+                left: target.left + target.transform[0],
+                top: target.top + target.transform[1],
+                x: target.left + target.transform[0] + target.width / 2,
+                y: target.top + target.transform[1] + target.height / 2,
+              };
+              let points = [
+                blockCenter.left,
+                blockCenter.top,
+                blockCenter.left + target.width,
+                blockCenter.top + target.height,
+              ];
+              if (target.rotate !== 0) {
+                const Rotate = (target.rotate / 180) * Math.PI;
+                const [x1, y1] = RotateMatrix(
+                  blockCenter.left,
+                  blockCenter.top,
+                  blockCenter.x,
+                  blockCenter.y,
+                  Rotate
+                );
+                const [x2, y2] = RotateMatrix(
+                  blockCenter.left,
+                  blockCenter.top + target.height,
+                  blockCenter.x,
+                  blockCenter.y,
+                  (target.rotate / 180) * Math.PI
+                );
+                const [x3, y3] = RotateMatrix(
+                  blockCenter.left + target.width,
+                  blockCenter.top + target.height,
+                  blockCenter.x,
+                  blockCenter.y,
+                  (target.rotate / 180) * Math.PI
+                );
+                const [x4, y4] = RotateMatrix(
+                  blockCenter.left + target.width,
+                  blockCenter.top,
+                  blockCenter.x,
+                  blockCenter.y,
+                  (target.rotate / 180) * Math.PI
+                );
+                if (0 > target.rotate && target.rotate >= -90) {
+                  points = [x1, y4, x3, y2];
+                } else if (-90 > target.rotate && target.rotate >= -180) {
+                  points = [x4, y3, x2, y1];
+                } else if (0 < target.rotate && target.rotate <= 90) {
+                  points = [x2, y1, x4, y3];
+                } else {
+                  points = [x3, y2, x1, y4];
+                }
+              }
+              maxMin[0] = Math.min(maxMin[0], points[0]);
+              maxMin[1] = Math.min(maxMin[1], points[1]);
+              maxMin[2] = Math.max(maxMin[2], points[2]);
+              maxMin[3] = Math.max(maxMin[3], points[3]);
             }
-            maxMin[0] = Math.min(maxMin[0], points[0]);
-            maxMin[1] = Math.min(maxMin[1], points[1]);
-            maxMin[2] = Math.max(maxMin[2], points[2]);
-            maxMin[3] = Math.max(maxMin[3], points[3]);
+            this.focusBox.pos = [
+              maxMin[0],
+              maxMin[1],
+              maxMin[2] - maxMin[0],
+              maxMin[3] - maxMin[1],
+            ];
           }
-          this.focusBox.pos = [
-            maxMin[0],
-            maxMin[1],
-            maxMin[2] - maxMin[0],
-            maxMin[3] - maxMin[1],
-          ];
+          this.focusBox.isShow = true;
         }
-        this.focusBox.isShow = true;
       }
     },
     // 获取渐进辅助线
-    getSnaplines() {
+    getSnaplines(left = 0, top = 0) {
       const snaplines = {
         left: {
           min: Infinity,
@@ -483,12 +505,12 @@ export const useEditorStore = defineStore('editor', {
       };
       const focusPos = this.focusBox.pos;
       const boxPos = [
-        focusPos[0],
-        focusPos[0] + focusPos[2] / 2,
-        focusPos[0] + focusPos[2],
-        focusPos[1],
-        focusPos[1] + focusPos[3] / 2,
-        focusPos[1] + focusPos[3],
+        focusPos[0] + left,
+        focusPos[0] + left + focusPos[2] / 2,
+        focusPos[0] + left + focusPos[2],
+        focusPos[1] + top,
+        focusPos[1] + top + focusPos[3] / 2,
+        focusPos[1] + top + focusPos[3],
       ];
       Object.keys(this.domNodesObj).forEach((id) => {
         if (!this.focusList.includes(id)) {
@@ -504,7 +526,7 @@ export const useEditorStore = defineStore('editor', {
           const compare = (
             target: number,
             pos: [number, number, number],
-            threshold = 8
+            threshold = NEAR_THRESHOLD
           ) => {
             let min = Infinity;
             let result = [false, 0, 0, 0] as [boolean, number, number, number];
@@ -569,23 +591,31 @@ export const useEditorStore = defineStore('editor', {
           }
         }
       });
-      let list = [];
+      this.snaplines.x = [];
+      this.snaplines.y = [];
       if (snaplines.left.values.length > 0) {
+        let list = [];
         for (let val of snaplines.left.values) {
           val[1] = Math.min(val[1] as number, boxPos[3] + snaplines.top.dif);
           val[2] += snaplines.top.dif;
           list.push(val);
         }
+        this.snaplines.y = [...list];
       }
       if (snaplines.top.values.length > 0) {
+        let list = [];
         for (let val of snaplines.top.values) {
           val[0] = Math.min(val[0] as number, boxPos[0] + snaplines.left.dif);
           val[2] += snaplines.left.dif;
           list.push(val);
         }
+        this.snaplines.x = [...list];
       }
-      this.snaplines = [...list];
-      return [snaplines.left.dif, snaplines.top.dif];
+
+      return [
+        Math.floor(snaplines.left.dif * 1000) / 1000,
+        Math.floor(snaplines.top.dif * 1000) / 1000,
+      ];
     },
   },
 });

@@ -18,8 +18,9 @@ const getWorkspacePos = (element: Element) => {
   }
 };
 const clearFocusList = () => {
-  // console.log('clearFocusList', editorStore.isMoving);
+  console.log('clearFocusList', editorStore.isMoving);
   if (!editorStore.isMoving) {
+    console.log('---------------------');
     editorStore.clearFocusList();
   }
 };

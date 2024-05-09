@@ -68,26 +68,21 @@ const blockMousedown = (event: MouseEvent, item: Object) => {
 
 // 当 focusBox 被按下时，开始监听拖拽事件
 const mousedown = (event: MouseEvent) => {
-  // console.log('focusBox mousedown');
   const preMoveDis = {
-    left: event.clientX,
-    top: event.clientY,
+    left: 0,
+    top: 0,
   };
   const x1 = event.clientX;
   const y1 = event.clientY;
   const mousemove = (e: MouseEvent) => {
-    console.log('mousemove - function');
     editorStore.changeMoveState(true);
     const x2 = e.clientX;
     const y2 = e.clientY;
-    const computedLeft = x2 - x1;
-    const computedTop = y2 - y1;
-    editorStore.moveDomNode(computedLeft, computedTop, [
-      computedLeft < 0 ? -1 : 1,
-      computedTop < 0 ? -1 : 1,
-    ]);
-    preMoveDis.left = x2;
-    preMoveDis.top = y2;
+    const computedLeft = x2 - x1 - preMoveDis.left;
+    const computedTop = y2 - y1 - preMoveDis.top;
+    preMoveDis.left = x2 - x1;
+    preMoveDis.top = y2 - y1;
+    editorStore.moveDomNode(computedLeft, computedTop);
   };
   const mouseup = () => {
     editorStore.syncToReal();
@@ -237,6 +232,29 @@ onUnmounted(() => {
       class="temp-point"
       :style="{ left: `${point.x}px`, top: `${point.y}px` }"
     ></div> -->
+    <template v-if="editorStore.isMoving">
+      <!-- [left, top, length, type] -->
+      <div
+        v-for="item in editorStore.snaplines.x"
+        :key="`${item[0]}${item[1]}${item[2]}${item[3]}`"
+        class="guidelines"
+        :style="{
+          left: `${item[0]}px`,
+          top: `${item[1]}px`,
+          width: `${item[2]}px`,
+        }"
+      ></div>
+      <div
+        v-for="item in editorStore.snaplines.y"
+        :key="`${item[0]}${item[1]}${item[2]}${item[3]}`"
+        class="guidelines"
+        :style="{
+          left: `${item[0]}px`,
+          top: `${item[1]}px`,
+          height: `${item[2]}px`,
+        }"
+      ></div>
+    </template>
     <template
       v-if="editorStore.focusBox.isShow && editorStore.focusBox.pos.length"
     >
@@ -345,20 +363,6 @@ onUnmounted(() => {
           </span>
         </i>
       </div>
-    </template>
-    <template v-if="editorStore.snaplines.length > 0">
-      <!-- [left, top, length, type] -->
-      <div
-        v-for="item in editorStore.snaplines"
-        :key="`${item[0]}${item[1]}${item[2]}${item[3]}`"
-        class="guidelines"
-        :style="{
-          left: `${item[0]}px`,
-          top: `${item[1]}px`,
-          width: `${item[3] == 'x' ? item[2] : 0}px`,
-          height: `${item[3] == 'y' ? item[2] : 0}px`,
-        }"
-      ></div>
     </template>
   </div>
 </template>
