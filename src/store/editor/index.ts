@@ -1,18 +1,19 @@
-import { defineStore } from 'pinia';
-import { RotateMatrix } from '@/utils/math';
-import { NEAR_THRESHOLD } from '@/config/base';
+import { defineStore } from "pinia";
+import { RotateMatrix } from "@/utils/math";
+import { NEAR_THRESHOLD } from "@/config/base";
 // 计算移动总量
 let totalMove = [0, 0];
+
 // defineStore 第一个参数是id，必需且值唯一
-export const useEditorStore = defineStore('editor', {
+export const useEditorStore = defineStore("editor", {
   //state返回一个函数，防止作用域污染
   state: () => {
     return {
       isMoving: false,
       domNodesObj: {
-        '2024417172122966970': {
-          id: '2024417172122966970',
-          key: 'text',
+        "2024417172122966970": {
+          id: "2024417172122966970",
+          key: "text",
           dragging: false,
           focus: false,
           outerStyle: {
@@ -24,27 +25,27 @@ export const useEditorStore = defineStore('editor', {
             zIndex: 1,
             rotate: 0,
             opacity: 1,
-            backgroundColor: '',
+            backgroundColor: "",
             transform: [0, 0],
           },
           textInnerStyle: {
-            fontFamily: '',
+            fontFamily: "",
             fontSize: 19.7,
             lineHeight: 24.579,
-            fontStyle: '',
+            fontStyle: "",
             fontWeight: 600,
-            color: '#000000',
-            text: '双击编辑标题',
-            textAlign: 'center',
+            color: "#000000",
+            text: "双击编辑标题",
+            textAlign: "center",
           },
           ingInnerStyle: {
-            alt: '',
-            src: '',
+            alt: "",
+            src: "",
           },
         },
-        '2024417172122966354': {
-          id: '2024417172122966354',
-          key: 'text',
+        "2024417172122966354": {
+          id: "2024417172122966354",
+          key: "text",
           dragging: false,
           focus: false,
           outerStyle: {
@@ -56,27 +57,27 @@ export const useEditorStore = defineStore('editor', {
             zIndex: 1,
             rotate: 0,
             opacity: 1,
-            backgroundColor: '',
+            backgroundColor: "",
             transform: [0, 0],
           },
           textInnerStyle: {
-            fontFamily: '',
+            fontFamily: "",
             fontSize: 19.7,
             lineHeight: 24.579,
-            fontStyle: '',
+            fontStyle: "",
             fontWeight: 600,
-            color: '#000000',
-            text: '双击编辑标题',
-            textAlign: 'center',
+            color: "#000000",
+            text: "双击编辑标题",
+            textAlign: "center",
           },
           ingInnerStyle: {
-            alt: '',
-            src: '',
+            alt: "",
+            src: "",
           },
         },
-        '2024425172122966970': {
-          id: '2024425172122966970',
-          key: 'text',
+        "2024425172122966970": {
+          id: "2024425172122966970",
+          key: "text",
           dragging: false,
           focus: false,
           outerStyle: {
@@ -88,27 +89,27 @@ export const useEditorStore = defineStore('editor', {
             zIndex: 1,
             rotate: 0,
             opacity: 1,
-            backgroundColor: '',
+            backgroundColor: "",
             transform: [0, 0],
           },
           textInnerStyle: {
-            fontFamily: '',
+            fontFamily: "",
             fontSize: 47.7,
-            fontStyle: '',
+            fontStyle: "",
             fontWeight: 600,
-            color: '#000000',
+            color: "#000000",
             lineHeight: 57.48,
-            text: '双击编辑标题',
-            textAlign: 'center',
+            text: "双击编辑标题",
+            textAlign: "center",
           },
           ingInnerStyle: {
-            alt: '',
-            src: '',
+            alt: "",
+            src: "",
           },
         },
-        '2024422172122966354': {
-          id: '2024422172122966354',
-          key: 'img',
+        "2024422172122966354": {
+          id: "2024422172122966354",
+          key: "img",
           dragging: false,
           focus: false,
           outerStyle: {
@@ -120,12 +121,12 @@ export const useEditorStore = defineStore('editor', {
             zIndex: 1,
             rotate: 0,
             opacity: 1,
-            backgroundColor: '',
+            backgroundColor: "",
             transform: [0, 0],
           },
           imgInnerStyle: {
-            alt: '',
-            src: 'https://gd-filems.dancf.com/saas/xi19e5/0/5c6e2c57-17cb-4adb-9a25-e00231774dff470.png',
+            alt: "",
+            src: "https://gd-filems.dancf.com/saas/xi19e5/0/5c6e2c57-17cb-4adb-9a25-e00231774dff470.png",
           },
         },
       },
@@ -134,7 +135,7 @@ export const useEditorStore = defineStore('editor', {
         isShow: false,
         isRotating: false,
         rotate: 0,
-        type: 'text',
+        type: "text",
         pos: [] as Array<number>, //[left, top, width, height]
       },
       snaplines: {
@@ -162,33 +163,48 @@ export const useEditorStore = defineStore('editor', {
       }
     },
     // 移动 focusBox 节点
-    moveDomNode(left: number, top: number) {
+    moveDomNode(
+      points: object,
+      left: number,
+      top: number,
+      [totalLeft, totalTop]: [number, number]
+    ) {
       const res = this.getSnaplines(left, top);
       let difLeft = left;
       let difTop = top;
-      if (left == -res[0]) {
-        totalMove[0] += left;
-      }
-      if (Math.abs(totalMove[0]) < NEAR_THRESHOLD) {
+
+      if (!points.left.isNeared && !res[0]) {
+        difLeft = left;
+      } else if (!points.left.isNeared && res[0]) {
         difLeft += res[0];
-      } else {
-        difLeft = totalMove[0];
-        totalMove[0] = 0;
-        this.snaplines.y = [];
+        points.left.isNeared = true;
+        points.left.preTram = totalLeft + res[0];
+      } else if (points.left.isNeared) {
+        if (Math.abs(points.left.preTram - totalLeft) > NEAR_THRESHOLD) {
+          difLeft = totalLeft - points.left.preTram;
+          points.left.isNeared = false;
+        } else {
+          difLeft = 0;
+        }
       }
-      if (top == -res[1]) {
-        totalMove[1] += top;
-      }
-      if (Math.abs(totalMove[1]) < NEAR_THRESHOLD) {
+
+      if (!points.top.isNeared && !res[1]) {
+        difTop = top;
+      } else if (!points.top.isNeared && res[1]) {
         difTop += res[1];
-      } else {
-        difTop = totalMove[1];
-        totalMove[1] = 0;
-        this.snaplines.x = [];
+        points.top.isNeared = true;
+        points.top.preTram = totalTop + res[1];
+      } else if (points.top.isNeared) {
+        if (Math.abs(points.top.preTram - totalTop) > NEAR_THRESHOLD) {
+          difTop = totalTop - points.top.preTram;
+          points.top.isNeared = false;
+        } else {
+          difTop = 0;
+        }
       }
       for (let id of this.focusList) {
-        this.domNodesObj[id].outerStyle.transform[0] += difLeft;
         this.domNodesObj[id].outerStyle.transform[1] += difTop;
+        this.domNodesObj[id].outerStyle.transform[0] += difLeft;
       }
       this.updateFocusBox(
         this.focusBox.pos[0] + difLeft,
@@ -212,31 +228,31 @@ export const useEditorStore = defineStore('editor', {
         movementX / (this.focusBox.pos[2] / this.focusBox.pos[3]);
       // [left, top, width, height]
       // 东 east  西 west  南 south  北 north
-      if (type === 'sw') {
+      if (type === "sw") {
         this.focusBox.pos[2] -= movementX;
         this.focusBox.pos[3] -= scaleVal;
         this.focusBox.pos[0] += movementX;
-      } else if (type === 'nw') {
+      } else if (type === "nw") {
         this.focusBox.pos[2] -= movementX;
         this.focusBox.pos[3] -= scaleVal;
         this.focusBox.pos[1] += scaleVal;
         this.focusBox.pos[0] += movementX;
-      } else if (type === 'ne') {
+      } else if (type === "ne") {
         this.focusBox.pos[2] += movementX;
         this.focusBox.pos[3] += scaleVal;
         this.focusBox.pos[1] -= scaleVal;
-      } else if (type === 'se') {
+      } else if (type === "se") {
         this.focusBox.pos[2] += movementX;
         this.focusBox.pos[3] += scaleVal;
-      } else if (type === 'e') {
+      } else if (type === "e") {
         this.focusBox.pos[2] += movementX;
-      } else if (type === 'w') {
+      } else if (type === "w") {
         this.focusBox.pos[2] -= movementX;
         this.focusBox.pos[0] += movementX;
-      } else if (type === 'n') {
+      } else if (type === "n") {
         this.focusBox.pos[3] -= movementY;
         this.focusBox.pos[1] += movementY;
-      } else if (type === 's') {
+      } else if (type === "s") {
         this.focusBox.pos[3] += movementY;
       }
       /**
@@ -245,7 +261,7 @@ export const useEditorStore = defineStore('editor', {
        * @param key
        * 传入 dom 节点根据比例修改节点
        */
-      const changeSize = (target: object, key = 'box') => {
+      const changeSize = (target: object, key = "box") => {
         const block = target.outerStyle;
         const prePos = { ...target.outerStyle };
         // 以 focusBox 为基准等比算出 left top width height 的变化
@@ -264,7 +280,7 @@ export const useEditorStore = defineStore('editor', {
         block.height = newHeight;
         block.left = newLeft;
         block.top = newTop;
-        if (target.key === 'text') {
+        if (target.key === "text") {
           const styles = target.textInnerStyle;
           styles.lineHeight = block.height;
           styles.fontSize = (0.8 * block.height).toFixed(1);
@@ -359,22 +375,22 @@ export const useEditorStore = defineStore('editor', {
           boxSize[2] <= blockCenter[1] &&
           boxSize[3] >= blockCenter[1]
         ) {
-          this.changeFocusStatus(id, 'add', false);
+          this.changeFocusStatus(id, "add", false);
         }
       });
     },
     // 对 focusList 的操作
     changeFocusStatus(id: string, type: string, isUpdateFocusBox = true) {
-      if (type == 'add') {
+      if (type == "add") {
         this.domNodesObj[id].focus = true;
         this.focusList.push(id);
-      } else if (type == 'replace') {
+      } else if (type == "replace") {
         this.focusList.forEach((id) => {
           this.domNodesObj[id].focus = false;
         });
         this.domNodesObj[id].focus = true;
         this.focusList = [id];
-      } else if (type == 'remove') {
+      } else if (type == "remove") {
         this.domNodesObj[id].focus = false;
         this.focusList = this.focusList.filter((itemId) => itemId != id);
       }
@@ -411,15 +427,15 @@ export const useEditorStore = defineStore('editor', {
               target.outerStyle.height,
             ];
             this.focusBox.rotate = target.outerStyle.rotate;
-            this.focusBox.type = target.key == 'img' ? 'box' : 'text';
+            this.focusBox.type = target.key == "img" ? "box" : "text";
           } else {
-            this.focusBox.type = 'box';
+            this.focusBox.type = "box";
             this.focusBox.rotate = 0;
             let maxMin = [Infinity, Infinity, 0, 0]; //[minLeft, minTop, maxRight, maxBottom]
             for (let id of this.focusList) {
               let target = this.domNodesObj[id].outerStyle;
-              if (this.domNodesObj[id].key == 'text') {
-                this.focusBox.type = 'text';
+              if (this.domNodesObj[id].key == "text") {
+                this.focusBox.type = "text";
               }
               const blockCenter = {
                 left: target.left + target.transform[0],
@@ -556,7 +572,7 @@ export const useEditorStore = defineStore('editor', {
                   boxPos[5] - boxPos[3],
                   pos[5] - pos[3]
                 ),
-                'y',
+                "y",
               ]; // [left, top, length, type]
               if (res[2] < snaplines.left.min) {
                 snaplines.left.min = res[2];
@@ -578,7 +594,7 @@ export const useEditorStore = defineStore('editor', {
                   boxPos[2] - boxPos[0],
                   pos[2] - pos[0]
                 ),
-                'x',
+                "x",
               ]; // [left, top, length, type]
               if (res[2] < snaplines.top.min) {
                 snaplines.top.min = res[2];
@@ -591,8 +607,7 @@ export const useEditorStore = defineStore('editor', {
           }
         }
       });
-      this.snaplines.x = [];
-      this.snaplines.y = [];
+
       if (snaplines.left.values.length > 0) {
         let list = [];
         for (let val of snaplines.left.values) {
@@ -601,6 +616,8 @@ export const useEditorStore = defineStore('editor', {
           list.push(val);
         }
         this.snaplines.y = [...list];
+      } else {
+        this.snaplines.y = [];
       }
       if (snaplines.top.values.length > 0) {
         let list = [];
@@ -610,6 +627,8 @@ export const useEditorStore = defineStore('editor', {
           list.push(val);
         }
         this.snaplines.x = [...list];
+      } else {
+        this.snaplines.x = [];
       }
 
       return [

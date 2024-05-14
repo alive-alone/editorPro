@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue';
-import Workspace from './components/Workspace.vue';
-import { useEditorStore } from '@/store/editor';
+import { reactive, ref, onMounted } from "vue";
+import Workspace from "./components/Workspace.vue";
+import { useEditorStore } from "@/store/editor";
 const state = reactive({
   workspacePos: {} as DOMRect,
 });
@@ -18,9 +18,9 @@ const getWorkspacePos = (element: Element) => {
   }
 };
 const clearFocusList = () => {
-  console.log('clearFocusList', editorStore.isMoving);
+  console.log("clearFocusList", editorStore.isMoving);
   if (!editorStore.isMoving) {
-    console.log('---------------------');
+    console.log("---------------------");
     editorStore.clearFocusList();
   }
 };
@@ -36,17 +36,8 @@ const boxSelect = (event: MouseEvent) => {
   const y1 = event.clientY;
   selectBox.pos[0] = x1;
   selectBox.pos[1] = y1;
-  let timer = setTimeout(() => {
-    // console.log('setTimeout');
-    clearFocusList();
-  }, 150);
-  let isFirst = true;
+  const preTime = Date.now();
   const mouseMove = (e: MouseEvent) => {
-    // console.log('----------------mouseMove');
-    if (isFirst) {
-      clearTimeout(timer);
-      isFirst = false;
-    }
     if (editorStore.isMoving) {
       selectBox.isShow = false;
       document.onmousemove = null;
@@ -78,6 +69,10 @@ const boxSelect = (event: MouseEvent) => {
   document.onmousemove = null;
   document.onmousemove = mouseMove;
   document.onmouseup = function () {
+    console.log("onmouseup");
+    if (Date.now() - preTime <= 150) {
+      clearFocusList();
+    }
     if (editorStore.focusList.length > 0) {
       editorStore.updateFocusBox();
     }

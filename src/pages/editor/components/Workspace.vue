@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, onUnmounted, ref } from 'vue';
-import RenderBlock from './RenderBlock.vue';
-import { useEditorStore } from '@/store/editor';
-import { throttle } from '@/utils/base';
+import { computed, onMounted, reactive, onUnmounted, ref } from "vue";
+import RenderBlock from "./RenderBlock.vue";
+import { useEditorStore } from "@/store/editor";
+import { throttle } from "@/utils/base";
 const props = defineProps({
   width: {
     type: Number,
@@ -17,7 +17,7 @@ const props = defineProps({
     default: [],
   },
 });
-const cext = defineEmits(['getElement']);
+const cext = defineEmits(["getElement"]);
 
 const state = reactive({
   isClickCtrl: false,
@@ -39,9 +39,9 @@ const changeFocus = (item: object) => {
   // console.log('changeFocus');
   if (editorStore.isMoving) return;
   if (state.isClickCtrl) {
-    editorStore.changeFocusStatus(item.id, item.focus ? 'remove' : 'add');
+    editorStore.changeFocusStatus(item.id, item.focus ? "remove" : "add");
   } else {
-    editorStore.changeFocusStatus(item.id, 'replace');
+    editorStore.changeFocusStatus(item.id, "replace");
   }
 };
 
@@ -51,18 +51,18 @@ const blockMousedown = (event: MouseEvent, item: Object) => {
     const target = document;
     const blockMove = () => {
       if (!item.focus) {
-        editorStore.changeFocusStatus(item.id, 'replace');
+        editorStore.changeFocusStatus(item.id, "replace");
         mousedown(event);
       }
-      target?.removeEventListener('mousemove', blockMove);
+      target?.removeEventListener("mousemove", blockMove);
     };
     const mouseup = () => {
       // console.log('mouseup');
-      target?.removeEventListener('mousemove', blockMove);
-      target?.removeEventListener('mouseup', mouseup);
+      target?.removeEventListener("mousemove", blockMove);
+      target?.removeEventListener("mouseup", mouseup);
     };
-    target?.addEventListener('mousemove', blockMove);
-    target?.addEventListener('mouseup', mouseup);
+    target?.addEventListener("mousemove", blockMove);
+    target?.addEventListener("mouseup", mouseup);
   }
 };
 
@@ -74,6 +74,16 @@ const mousedown = (event: MouseEvent) => {
   };
   const x1 = event.clientX;
   const y1 = event.clientY;
+  let points = {
+    left: {
+      isNeared: false,
+      preTram: 0,
+    },
+    top: {
+      isNeared: false,
+      preTram: 0,
+    },
+  };
   const mousemove = (e: MouseEvent) => {
     editorStore.changeMoveState(true);
     const x2 = e.clientX;
@@ -82,7 +92,10 @@ const mousedown = (event: MouseEvent) => {
     const computedTop = y2 - y1 - preMoveDis.top;
     preMoveDis.left = x2 - x1;
     preMoveDis.top = y2 - y1;
-    editorStore.moveDomNode(computedLeft, computedTop);
+    editorStore.moveDomNode(points, computedLeft, computedTop, [
+      preMoveDis.left,
+      preMoveDis.top,
+    ]);
   };
   const mouseup = () => {
     editorStore.syncToReal();
@@ -90,18 +103,18 @@ const mousedown = (event: MouseEvent) => {
       editorStore.changeMoveState(false);
     });
     // 及时取消监听事件
-    document.removeEventListener('mousemove', mousemove);
-    document.removeEventListener('mouseup', mouseup);
+    document.removeEventListener("mousemove", mousemove);
+    document.removeEventListener("mouseup", mouseup);
   };
-  document.removeEventListener('mouseup', mouseup);
-  document.removeEventListener('mousemove', mousemove);
-  document?.addEventListener('mousemove', mousemove);
-  document?.addEventListener('mouseup', mouseup);
+  document.removeEventListener("mouseup", mouseup);
+  document.removeEventListener("mousemove", mousemove);
+  document?.addEventListener("mousemove", mousemove);
+  document?.addEventListener("mouseup", mouseup);
 };
 
 const blockMouseMove = (event: MouseEvent, item: Object) => {
   if (!item.focus) {
-    editorStore.changeFocusStatus(item.id, 'replace');
+    editorStore.changeFocusStatus(item.id, "replace");
     mousedown(event);
   }
 };
@@ -183,15 +196,15 @@ const watchKeyup = (event: KeyboardEvent) => {
 
 onMounted(() => {
   // 开启键盘监听事件
-  document.addEventListener('keydown', watchKeydown);
-  document.addEventListener('keyup', watchKeyup);
-  cext('getElement', workspaceRef.value);
+  document.addEventListener("keydown", watchKeydown);
+  document.addEventListener("keyup", watchKeyup);
+  cext("getElement", workspaceRef.value);
 });
 
 onUnmounted(() => {
   // 取消键盘监听事件
-  document.removeEventListener('keydown', watchKeydown);
-  document.removeEventListener('keyup', watchKeyup);
+  document.removeEventListener("keydown", watchKeydown);
+  document.removeEventListener("keyup", watchKeyup);
 });
 </script>
 
@@ -388,7 +401,7 @@ onUnmounted(() => {
     pointer-events: auto;
   }
   .block__hover:hover::before {
-    content: '';
+    content: "";
     position: absolute;
     width: 100%;
     height: 100%;
@@ -483,7 +496,7 @@ onUnmounted(() => {
     cursor: ns-resize;
   }
   .editor-rotator {
-    cursor: url('https://cdn.dancf.com/odyssey-editor/img/ic_mouse_rotation_0.1c6c9df0.svg')
+    cursor: url("https://cdn.dancf.com/odyssey-editor/img/ic_mouse_rotation_0.1c6c9df0.svg")
         11 9,
       pointer;
   }
