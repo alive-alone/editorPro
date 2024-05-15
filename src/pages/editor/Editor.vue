@@ -18,9 +18,7 @@ const getWorkspacePos = (element: Element) => {
   }
 };
 const clearFocusList = () => {
-  console.log("clearFocusList", editorStore.isMoving);
   if (!editorStore.isMoving) {
-    console.log("---------------------");
     editorStore.clearFocusList();
   }
 };
@@ -69,7 +67,6 @@ const boxSelect = (event: MouseEvent) => {
   document.onmousemove = null;
   document.onmousemove = mouseMove;
   document.onmouseup = function () {
-    console.log("onmouseup");
     if (Date.now() - preTime <= 150) {
       clearFocusList();
     }

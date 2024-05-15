@@ -422,7 +422,7 @@ onUnmounted(() => {
     z-index: 3;
     // transform: translate(-0.5px, -0.5px);
     // margin: -1.5px 0 0 -1.5px;
-    margin: -1px 0 0 -1px;
+    margin: -2px 0 0 -2px;
   }
   .box-border__focus {
     display: block;
@@ -432,7 +432,7 @@ onUnmounted(() => {
 
 .focus-box {
   // transform: translate(-1px, -1px);
-  margin: -1px 0 0 -1px;
+  margin: -2px 0 0 -2px;
   // margin: -1.5px 0 0 -1.5px;
   // transform: translate(-1px, -1px);
   transform: matrix(1, 0, 0, 1, 0, 0);
@@ -578,5 +578,6 @@ onUnmounted(() => {
   border-width: 0;
   border-top-width: 1px;
   border-left-width: 1px;
+  margin: -1px 0 0 -1px;
 }
 </style>
